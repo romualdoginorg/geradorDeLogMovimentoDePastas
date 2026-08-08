@@ -1,0 +1,24 @@
+{
+  "name": "geradordelogmovimentodepastas",
+  "version": "1.0.0",
+  "description": "```python\r readme_content = \"\"\"# Monitoramento de Auditoria de Arquivos (Windows Server + Node.js)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/romualdoginorg/geradorDeLogMovimentoDePastas.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/romualdoginorg/geradorDeLogMovimentoDePastas/issues"
+  },
+  "homepage": "https://github.com/romualdoginorg/geradorDeLogMovimentoDePastas#readme",
+  "dependencies": {
+    "winston": "^3.19.0"
+  }
+}

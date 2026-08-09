@@ -1,24 +1,46 @@
 {
-  "name": "geradordelogmovimentodepastas",
+  "name": "monitor-produtividade",
   "version": "1.0.0",
-  "description": "```python\r readme_content = \"\"\"# Monitoramento de Auditoria de Arquivos (Windows Server + Node.js)",
-  "main": "index.js",
+  "description": "Monitor de produtividade com system tray - coleta atividade e envia quando necessário",
+  "main": "src/main.js",
+  "bin": "src/main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/main.js",
+    "dev": "node --watch src/main.js",
+    "build": "node scripts/build.js",
+    "build:pkg": "pkg . --targets node18-win-x64 --output dist/monitor-produtividade.exe --compress GZip",
+    "postinstall": "node -e \"console.log('✅ Dependências instaladas. Rode: npm start')"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/romualdoginorg/geradorDeLogMovimentoDePastas.git"
-  },
-  "keywords": [],
+  "keywords": [
+    "tray",
+    "monitor",
+    "produtividade",
+    "windows",
+    "system-tray"
+  ],
   "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/romualdoginorg/geradorDeLogMovimentoDePastas/issues"
-  },
-  "homepage": "https://github.com/romualdoginorg/geradorDeLogMovimentoDePastas#readme",
+  "license": "MIT",
   "dependencies": {
-    "winston": "^3.19.0"
+    "systray2": "^2.1.4",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  },
+  "pkg": {
+    "scripts": [
+      "src/**/*.js"
+    ],
+    "assets": [
+      "node_modules/systray2/traybin/**/*",
+      "assets/**/*",
+      "config/**/*"
+    ],
+    "targets": [
+      "node18-win-x64"
+    ],
+    "outputPath": "dist",
+    "compress": "GZip"
   }
 }

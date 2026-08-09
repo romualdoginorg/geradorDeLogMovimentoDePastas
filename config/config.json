@@ -1,0 +1,17 @@
+{
+  "intervaloChecagemMs": 5000,
+  "minutosOciosidade": 10,
+  "envio": {
+    "habilitado": false,
+    "url": "https://seu-servidor.com/api/eventos",
+    "token": "",
+    "intervaloEnvioMinutos": 15,
+    "enviarAoSair": true
+  },
+  "comandoRemoto": {
+    "habilitado": true,
+    "host": "127.0.0.1",
+    "port": 17340,
+    "token": ""
+  }
+}

@@ -29,3 +29,6 @@ npm-debug.log*
 
 # OS
 Thumbs.db
+eventos-pendentes.jsonl
+.DS_Store
+Thumbs.db

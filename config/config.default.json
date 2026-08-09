@@ -1,0 +1,50 @@
+{
+  "intervaloChecagemMs": 5000,
+  "minutosOciosidade": 10,
+  "processosIgnorados": [
+    "svchost.exe",
+    "System",
+    "Idle",
+    "explorer.exe",
+    "conhost.exe",
+    "SearchHost.exe",
+    "StartMenuExperienceHost.exe",
+    "RuntimeBroker.exe",
+    "Taskmgr.exe",
+    "SecurityHealthService.exe",
+    "node.exe",
+    "powershell.exe",
+    "ApplicationFrameHost.exe",
+    "dwm.exe",
+    "csrss.exe",
+    "winlogon.exe",
+    "sihost.exe",
+    "fontdrvhost.exe",
+    "ShellExperienceHost.exe",
+    "TextInputHost.exe"
+  ],
+  "log": {
+    "diretorio": "logs",
+    "arquivo": "monitor-%DATE%.log",
+    "nivel": "info",
+    "maxArquivos": "14d"
+  },
+  "envio": {
+    "habilitado": false,
+    "url": "https://seu-servidor.com/api/eventos",
+    "token": "",
+    "intervaloEnvioMinutos": 15,
+    "enviarAoSair": true,
+    "maxTentativas": 3
+  },
+  "comandoRemoto": {
+    "habilitado": true,
+    "host": "127.0.0.1",
+    "port": 17340,
+    "token": ""
+  },
+  "tray": {
+    "titulo": "Monitor de Produtividade",
+    "tooltip": "Monitoramento ativo em segundo plano"
+  }
+}

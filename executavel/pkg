@@ -1,0 +1,1 @@
+npx @yao-pkg/pkg terminal.js --targets node18-win-x64 --output monitor-terminal.exe

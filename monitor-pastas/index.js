@@ -1,7 +1,30 @@
 const { exec } = require('child_process');
 const winston = require('winston');
 
-// Configuração do Logger (exibição no console e persistência em arquivo)
+// ==============================================================================
+// ⚙️ CONFIGURAÇÕES DO SISTEMA (Ajuste aqui)
+// ==============================================================================
+const CONFIG = {
+  // Intervalo em milissegundos para rodar a checagem (10000 = 10 segundos)
+  INTERVALO_CHECAGEM_MS: 10000,
+  
+  // Janela de tempo em segundos para buscar eventos no passado do Windows
+  JANELA_TEMPO_SEGUNDOS: 15,
+  
+  // Nome do arquivo onde os logs serão salvos
+  NOME_ARQUIVO_LOG: 'logs-movimentacao.log',
+  
+  // Limite máximo do cache de memória para evitar vazamento (quantidade de logs)
+  LIMITE_CACHE_MEMORIA: 1000,
+  
+  // Expressão regular para ignorar arquivos temporários e do sistema
+  // Adicione novas extensões separando com pipe (|). Exemplo: |\n.zip$
+  REGEX_ARQUIVOS_IGNORADOS: '\\$|\\.tmp$|Desktop\\.ini|~\\$'
+};
+
+// ==============================================================================
+// 📝 CONFIGURAÇÃO DO LOGGER (WINSTON)
+// ==============================================================================
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(
@@ -9,14 +32,16 @@ const logger = winston.createLogger({
     winston.format.json()
   ),
   transports: [
-    new winston.transports.File({ filename: 'logs-movimentacao.log' }),
+    new winston.transports.File({ filename: CONFIG.NOME_ARQUIVO_LOG }),
     new winston.transports.Console({ format: winston.format.simple() })
   ],
 });
 
-// Script PowerShell otimizado com tradução de AccessMask e filtro temporal
+// ==============================================================================
+// 📜 SCRIPT POWERSHELL DINÂMICO
+// ==============================================================================
 const scriptPowerShell = `
-$startTime = (Get-Date).AddSeconds(-15)
+$startTime = (Get-Date).AddSeconds(-${CONFIG.JANELA_TEMPO_SEGUNDOS})
 $events = Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4663; StartTime=$startTime} -ErrorAction SilentlyContinue
 
 if ($events) {
@@ -48,8 +73,8 @@ if ($events) {
             continue
         }
 
-        # Ignora arquivos temporários e de sistema
-        if ($objectName -notmatch "\\$|\\.tmp$|Desktop\\.ini|~\\$") {
+        # Ignora arquivos usando a regex configurada
+        if ($objectName -notmatch "${CONFIG.REGEX_ARQUIVOS_IGNORADOS}") {
             [PSCustomObject]@{
                 TimeCreated = $event.TimeCreated.ToString("o")
                 Usuario     = "$dominio\\\\$usuario"
@@ -67,6 +92,9 @@ if ($events) {
 const encodedScript = Buffer.from(scriptPowerShell, 'utf16le').toString('base64');
 const ultimosEventos = new Set();
 
+// ==============================================================================
+// 🔄 LÓGICA DE EXECUÇÃO E MONITORAMENTO
+// ==============================================================================
 function lerLogsWindows() {
   const comando = `powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${encodedScript}`;
 
@@ -88,8 +116,8 @@ function lerLogsWindows() {
         if (!ultimosEventos.has(chaveUnica)) {
           ultimosEventos.add(chaveUnica);
 
-          // Limpeza periódica do cache de memória
-          if (ultimosEventos.size > 1000) {
+          // Limpeza periódica do cache de memória com base na variável CONFIG
+          if (ultimosEventos.size > CONFIG.LIMITE_CACHE_MEMORIA) {
             const primeiroItem = ultimosEventos.values().next().value;
             ultimosEventos.delete(primeiroItem);
           }
@@ -109,6 +137,6 @@ function lerLogsWindows() {
   });
 }
 
-// Executa a verificação a cada 10 segundos
-setInterval(lerLogsWindows, 10000);
-console.log('Monitoramento de auditoria de arquivos iniciado...');
+// Inicia o loop usando o intervalo configurado
+setInterval(lerLogsWindows, CONFIG.INTERVALO_CHECAGEM_MS);
+console.log('Monitoramento de auditoria de arquivos iniciado com configurações personalizadas...');

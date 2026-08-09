@@ -1,0 +1,15 @@
+{
+  "name": "monitor-servidor",
+  "version": "1.0.0",
+  "description": "Servidor de gestão – recebe dados dos terminais e monitora movimentação de pastas",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "node src/main.js",
+    "dev": "node --watch src/main.js"
+  },
+  "dependencies": {
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0"
+  },
+  "license": "MIT"
+}

@@ -35,7 +35,8 @@
     "token": "",
     "intervaloEnvioMinutos": 15,
     "enviarAoSair": true,
-    "maxTentativas": 3
+    "maxTentativas": 3,
+    "heartbeatMinutos": 30
   },
   "comandoRemoto": {
     "habilitado": true,

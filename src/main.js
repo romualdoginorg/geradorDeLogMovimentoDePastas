@@ -1,6 +1,6 @@
 const path = require('path');
 const { exec } = require('child_process');
-const { carregarConfig, baseDir } = require('./config');
+const { carregarConfig, salvarConfig, baseDir } = require('./config');
 const { criarLogger } = require('./logger');
 const { coletarDados } = require('./collector');
 const { adicionarAoBuffer, enviarEventos } = require('./sender');
@@ -11,7 +11,7 @@ const { iniciarServidorComando } = require('./comando-remoto');
 // ==============================================================================
 // 🚀 INICIALIZAÇÃO
 // ==============================================================================
-const config = carregarConfig();
+let config = carregarConfig();
 const logger = criarLogger(config);
 const maquina = obterMetadadosMaquina();
 
@@ -63,9 +63,10 @@ try {
 
       if (intervaloMonitor) clearInterval(intervaloMonitor);
       if (intervaloEnvio) clearInterval(intervaloEnvio);
-      if (servidorComando) {
+      if (intervaloHeartbeat) clearInterval(intervaloHeartbeat);
+      if (servidorComando?.server) {
         try {
-          servidorComando.close();
+          servidorComando.server.close();
         } catch (_) {}
       }
       trayInstance?.kill();
@@ -90,6 +91,14 @@ try {
         nomeMaquina: maquina.nomeMaquina
       });
       trayInstance?.atualizarStatus(pausado ? 'Pausado' : 'Monitorando...');
+    },
+    onAbrirConfig: () => {
+      const url =
+        (servidorComando && servidorComando.urlConfig) ||
+        `http://127.0.0.1:${config.comandoRemoto?.port || 17340}/config`;
+      // Abre no navegador padrão (pode fechar e reabrir quando quiser)
+      exec(`start "" "${url}"`, { windowsHide: true });
+      logger.info('[CONFIG] Tela de configuração aberta', { origem: 'TRAY', url });
     }
   });
   console.log('✅ System tray iniciado');
@@ -104,8 +113,27 @@ try {
 servidorComando = iniciarServidorComando({
   config,
   logger,
-  onForcarEnvio: (motivo) => dispararEnvio(motivo || 'solicitacao_servidor')
+  onForcarEnvio: (motivo) => dispararEnvio(motivo || 'solicitacao_servidor'),
+  getConfig: () => config,
+  onSalvarConfig: (parcial) => {
+    try {
+      // merge superficial nas seções principais
+      if (parcial.intervaloChecagemMs != null) config.intervaloChecagemMs = parcial.intervaloChecagemMs;
+      if (parcial.minutosOciosidade != null) config.minutosOciosidade = parcial.minutosOciosidade;
+      if (parcial.envio) config.envio = { ...(config.envio || {}), ...parcial.envio };
+      if (parcial.comandoRemoto) config.comandoRemoto = { ...(config.comandoRemoto || {}), ...parcial.comandoRemoto };
+      if (parcial.log) config.log = { ...(config.log || {}), ...parcial.log };
+      const ok = salvarConfig(config);
+      return ok ? { ok: true } : { ok: false, erro: 'Não foi possível gravar config.json' };
+    } catch (e) {
+      return { ok: false, erro: e.message };
+    }
+  }
 });
+
+const urlConfig =
+  (servidorComando && servidorComando.urlConfig) ||
+  `http://127.0.0.1:${config.comandoRemoto?.port || 17340}/config`;
 
 // ==============================================================================
 // 📊 LÓGICA DE MONITORAMENTO
@@ -226,6 +254,8 @@ const intervaloMs = config.intervaloChecagemMs || 5000;
 intervaloMonitor = setInterval(cicloMonitoramento, intervaloMs);
 cicloMonitoramento();
 
+let intervaloHeartbeat = null;
+
 if (config.envio?.habilitado && config.envio?.intervaloEnvioMinutos > 0) {
   const msEnvio = config.envio.intervaloEnvioMinutos * 60 * 1000;
   intervaloEnvio = setInterval(() => {
@@ -234,17 +264,29 @@ if (config.envio?.habilitado && config.envio?.intervaloEnvioMinutos > 0) {
   console.log(`📤 Envio automático a cada ${config.envio.intervaloEnvioMinutos} minutos`);
 }
 
+// Heartbeat: envia metadados da máquina mesmo sem eventos (para o servidor saber que está online)
+if (config.envio?.habilitado && config.envio?.heartbeatMinutos > 0) {
+  const msHb = config.envio.heartbeatMinutos * 60 * 1000;
+  intervaloHeartbeat = setInterval(() => {
+    dispararEnvio('heartbeat');
+  }, msHb);
+  console.log(`💓 Heartbeat a cada ${config.envio.heartbeatMinutos} minutos`);
+}
+
 // ==============================================================================
 // 🛡️ TRATAMENTO DE SAÍDA
 // ==============================================================================
 process.on('SIGINT', async () => {
   logger.info('[SIGINT] Encerrando...');
+  if (intervaloMonitor) clearInterval(intervaloMonitor);
+  if (intervaloEnvio) clearInterval(intervaloEnvio);
+  if (typeof intervaloHeartbeat !== 'undefined' && intervaloHeartbeat) clearInterval(intervaloHeartbeat);
   if (config.envio?.enviarAoSair) {
     await dispararEnvio('ao_sair');
   }
-  if (servidorComando) {
+  if (servidorComando?.server) {
     try {
-      servidorComando.close();
+      servidorComando.server.close();
     } catch (_) {}
   }
   process.exit(0);
@@ -264,8 +306,4 @@ console.log(`📁 Base: ${baseDir}`);
 console.log(`⏱️  Intervalo de checagem: ${intervaloMs} ms`);
 console.log(`💤 Ociosidade: ${config.minutosOciosidade} minutos`);
 console.log(`📤 Envio: ${config.envio?.habilitado ? 'habilitado' : 'desabilitado'}`);
-if (config.comandoRemoto?.habilitado) {
-  console.log(
-    `📡 Comando remoto: http://${config.comandoRemoto.host || '127.0.0.1'}:${config.comandoRemoto.port || 17340}`
-  );
-}
+console.log(`⚙  Configurações: ${urlConfig || 'http://127.0.0.1:17340/config'}`);

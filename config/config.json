@@ -2,11 +2,12 @@
   "intervaloChecagemMs": 5000,
   "minutosOciosidade": 10,
   "envio": {
-    "habilitado": false,
-    "url": "https://seu-servidor.com/api/eventos",
+    "habilitado": true,
+    "url": "http://localhost:3847/api/eventos",
     "token": "",
     "intervaloEnvioMinutos": 15,
-    "enviarAoSair": true
+    "enviarAoSair": true,
+    "heartbeatMinutos": 30
   },
   "comandoRemoto": {
     "habilitado": true,

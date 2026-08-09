@@ -1,0 +1,37 @@
+{
+  "rom": {
+    "nome": "rom",
+    "nomeCompleto": "rom\\rom",
+    "usuario": "romo",
+    "usuarioCompleto": "rom\\romo",
+    "dominio": "rom",
+    "plataforma": "win32",
+    "arquitetura": "x64",
+    "versaoSO": "10.0.26200",
+    "tipoSO": "Windows_NT",
+    "uptimeSegundos": 16374,
+    "cpus": 4,
+    "memoriaTotalMB": 3951,
+    "memoriaLivreMB": 374,
+    "ipPrincipal": "192.168.0.2",
+    "macPrincipal": "50:a1:32:07:b5:a3",
+    "ips": [
+      {
+        "interface": "Ethernet",
+        "endereco": "192.168.0.2",
+        "mac": "50:a1:32:07:b5:a3"
+      }
+    ],
+    "fabricante": "Positivo Bahia - VAIO",
+    "modelo": "VJFE51F11X-B0311H",
+    "serialBios": "89240698M",
+    "pid": 5916,
+    "nodeVersion": "v24.19.0",
+    "coletadoEm": "2026-08-09T22:48:28.050Z",
+    "ultimoMotivoEnvio": "periodico",
+    "versaoApp": "1.0.0",
+    "quantidadeUltimoLote": 2,
+    "ultimoContato": "2026-08-09T22:48:28.115Z",
+    "primeiroRegistro": "2026-08-09T22:35:31.243Z"
+  }
+}

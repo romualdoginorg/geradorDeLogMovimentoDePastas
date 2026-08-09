@@ -1,32 +1,28 @@
 const http = require('http');
 const { obterMetadadosMaquina } = require('./machine');
+const { gerarPaginaConfig } = require('./ui-config');
 
 /**
- * Servidor HTTP local que permite ao servidor (ou admin) forçar o envio.
+ * Servidor HTTP local:
+ *   - Tela de configuração (abrir / fechar / reabrir a qualquer momento)
+ *   - Comando remoto para o servidor forçar envio
  *
  * Endpoints:
+ *   GET  /config          → página HTML de configuração
+ *   POST /config          → salva configuração
  *   GET  /health          → status + nome da máquina
- *   POST /enviar          → força envio imediato dos eventos pendentes
- *   GET  /enviar          → idem (para facilitar testes)
- *   GET  /maquina         → retorna metadados da máquina
- *
- * Segurança básica:
- *   - Escuta só em 127.0.0.1 por padrão (ou IP configurado)
- *   - Header opcional X-Token ou ?token= deve bater com config.comandoRemoto.token
+ *   POST /enviar          → força envio imediato
+ *   GET  /maquina         → metadados da máquina
  */
-function iniciarServidorComando({ config, logger, onForcarEnvio }) {
+function iniciarServidorComando({ config, logger, onForcarEnvio, onSalvarConfig, getConfig }) {
   const cfg = config.comandoRemoto || {};
-  if (!cfg.habilitado) {
-    console.log('ℹ️  Comando remoto desabilitado (config.comandoRemoto.habilitado = false)');
-    return null;
-  }
-
+  // Sempre sobe o servidor local para a tela de config (no mínimo em 127.0.0.1)
   const host = cfg.host || '127.0.0.1';
   const port = cfg.port || 17340;
   const tokenEsperado = cfg.token || '';
 
   function autenticado(req, urlObj) {
-    if (!tokenEsperado) return true; // sem token configurado = aberto (só use em rede confiável)
+    if (!tokenEsperado) return true;
     const header = req.headers['x-token'] || req.headers['authorization'] || '';
     const bearer = header.startsWith('Bearer ') ? header.slice(7) : header;
     const queryToken = urlObj.searchParams.get('token') || '';
@@ -42,11 +38,34 @@ function iniciarServidorComando({ config, logger, onForcarEnvio }) {
     res.end(data);
   }
 
+  function html(res, status, body) {
+    res.writeHead(status, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Length': Buffer.byteLength(body)
+    });
+    res.end(body);
+  }
+
+  function lerBody(req) {
+    return new Promise((resolve, reject) => {
+      const chunks = [];
+      req.on('data', (c) => chunks.push(c));
+      req.on('end', () => {
+        try {
+          const raw = Buffer.concat(chunks).toString('utf8');
+          resolve(raw ? JSON.parse(raw) : {});
+        } catch (e) {
+          reject(e);
+        }
+      });
+      req.on('error', reject);
+    });
+  }
+
   const server = http.createServer(async (req, res) => {
     const urlObj = new URL(req.url || '/', `http://${host}:${port}`);
-    const path = urlObj.pathname;
+    const pathname = urlObj.pathname;
 
-    // CORS simples (útil se o servidor chamar de outro host na mesma rede)
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Token, Authorization');
@@ -58,7 +77,41 @@ function iniciarServidorComando({ config, logger, onForcarEnvio }) {
     }
 
     try {
-      if (path === '/health' || path === '/') {
+      // ---- Tela de configuração (pode fechar e reabrir) ----
+      if (pathname === '/config' && req.method === 'GET') {
+        const cfgAtual = typeof getConfig === 'function' ? getConfig() : config;
+        const pagina = gerarPaginaConfig(cfgAtual, obterMetadadosMaquina());
+        return html(res, 200, pagina);
+      }
+
+      if (pathname === '/config' && req.method === 'POST') {
+        // Config só pela máquina local (sem exigir token se vier de 127.0.0.1)
+        const remoto = req.socket.remoteAddress || '';
+        const isLocal =
+          remoto === '127.0.0.1' ||
+          remoto === '::1' ||
+          remoto === '::ffff:127.0.0.1';
+        if (!isLocal && !autenticado(req, urlObj)) {
+          return json(res, 401, { ok: false, erro: 'Token inválido' });
+        }
+
+        const body = await lerBody(req);
+        if (typeof onSalvarConfig !== 'function') {
+          return json(res, 500, { ok: false, erro: 'Handler de salvar não configurado' });
+        }
+        const resultado = onSalvarConfig(body);
+        if (resultado?.ok) {
+          logger?.info('[CONFIG] Configuração salva pela tela', {
+            origem: 'UI_CONFIG',
+            evento: 'CONFIG_SALVA'
+          });
+          return json(res, 200, { ok: true, mensagem: 'Configuração salva' });
+        }
+        return json(res, 400, { ok: false, erro: resultado?.erro || 'Falha ao salvar' });
+      }
+
+      // ---- Health ----
+      if (pathname === '/health' || pathname === '/') {
         const maquina = obterMetadadosMaquina();
         return json(res, 200, {
           ok: true,
@@ -66,25 +119,28 @@ function iniciarServidorComando({ config, logger, onForcarEnvio }) {
           nomeMaquina: maquina.nomeMaquina,
           usuario: maquina.usuarioCompleto,
           uptimeSegundos: maquina.uptimeSegundos,
+          configUrl: `http://${host === '0.0.0.0' ? '127.0.0.1' : host}:${port}/config`,
           timestamp: new Date().toISOString()
         });
       }
 
-      if (path === '/maquina') {
+      if (pathname === '/maquina') {
         if (!autenticado(req, urlObj)) {
           return json(res, 401, { ok: false, erro: 'Token inválido' });
         }
-        return json(res, 200, {
-          ok: true,
-          maquina: obterMetadadosMaquina()
-        });
+        return json(res, 200, { ok: true, maquina: obterMetadadosMaquina() });
       }
 
-      if (path === '/enviar' && (req.method === 'POST' || req.method === 'GET')) {
-        if (!autenticado(req, urlObj)) {
+      if (pathname === '/enviar' && (req.method === 'POST' || req.method === 'GET')) {
+        const remoto = req.socket.remoteAddress || '';
+        const isLocal =
+          remoto === '127.0.0.1' ||
+          remoto === '::1' ||
+          remoto === '::ffff:127.0.0.1';
+        if (!isLocal && !autenticado(req, urlObj)) {
           logger?.warn('[COMANDO_REMOTO] Tentativa de envio sem token válido', {
             origem: 'COMANDO_REMOTO',
-            ip: req.socket.remoteAddress
+            ip: remoto
           });
           return json(res, 401, { ok: false, erro: 'Token inválido' });
         }
@@ -92,7 +148,7 @@ function iniciarServidorComando({ config, logger, onForcarEnvio }) {
         logger?.info('[COMANDO_REMOTO] Solicitação de envio recebida', {
           origem: 'COMANDO_REMOTO',
           evento: 'FORCAR_ENVIO',
-          ip: req.socket.remoteAddress,
+          ip: remoto,
           dataHora: new Date().toISOString()
         });
 
@@ -113,7 +169,7 @@ function iniciarServidorComando({ config, logger, onForcarEnvio }) {
       json(res, 404, {
         ok: false,
         erro: 'Endpoint não encontrado',
-        endpoints: ['/health', '/maquina', '/enviar']
+        endpoints: ['/config', '/health', '/maquina', '/enviar']
       });
     } catch (e) {
       logger?.error(`[COMANDO_REMOTO] Erro: ${e.message}`);
@@ -122,23 +178,30 @@ function iniciarServidorComando({ config, logger, onForcarEnvio }) {
   });
 
   server.listen(port, host, () => {
-    console.log(`📡 Comando remoto escutando em http://${host}:${port}`);
-    console.log(`   POST/GET /enviar  → força envio`);
-    console.log(`   GET /health       → status`);
-    console.log(`   GET /maquina      → metadados`);
+    const urlConfig = `http://${host === '0.0.0.0' ? '127.0.0.1' : host}:${port}/config`;
+    console.log(`📡 Servidor local em http://${host}:${port}`);
+    console.log(`   ⚙  Configurações: ${urlConfig}`);
+    console.log(`   📤 POST/GET /enviar  → força envio`);
+    console.log(`   ❤  GET /health`);
     logger?.info('[COMANDO_REMOTO] Servidor local iniciado', {
       origem: 'COMANDO_REMOTO',
       host,
-      port
+      port,
+      urlConfig
     });
   });
 
   server.on('error', (err) => {
-    console.error(`❌ Erro no servidor de comando remoto: ${err.message}`);
+    console.error(`❌ Erro no servidor local: ${err.message}`);
     logger?.error(`[COMANDO_REMOTO] ${err.message}`);
   });
 
-  return server;
+  return {
+    server,
+    port,
+    host,
+    urlConfig: `http://${host === '0.0.0.0' ? '127.0.0.1' : host}:${port}/config`
+  };
 }
 
 module.exports = { iniciarServidorComando };

@@ -14,8 +14,15 @@ logger.info('[BOOT] Servidor de gestão iniciando...', {
   dataDir: store.dataDir
 });
 
-const apiServer = iniciarApi({ config, logger, store });
 const monitorPastas = iniciarMonitorPastas({ config, logger, store });
+
+function getPastasStatus() {
+  return monitorPastas && typeof monitorPastas.status === 'function'
+    ? monitorPastas.status()
+    : { habilitado: false, rodando: false };
+}
+
+const apiServer = iniciarApi({ config, logger, store, getPastasStatus });
 
 console.log('🚀 Monitor Servidor iniciado!');
 console.log(`📁 Dados em: ${store.dataDir}`);

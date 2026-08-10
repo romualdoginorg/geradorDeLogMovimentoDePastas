@@ -201,8 +201,11 @@ function gerarPainel() {
       <div class="card-stat"><div class="label">Máquinas</div><div class="value" id="sTotalM">—</div></div>
       <div class="card-stat"><div class="label">Online (&lt;45min)</div><div class="value ok" id="sOnline">—</div></div>
       <div class="card-stat"><div class="label">Usuários</div><div class="value" id="sUsers">—</div></div>
+      <div class="card-stat"><div class="label">Pastas (monitor)</div><div class="value" style="font-size:1rem" id="sPastas">—</div></div>
       <div class="card-stat"><div class="label">Última atualização</div><div class="value" style="font-size:1rem" id="sTime">—</div></div>
     </div>
+
+    <div id="pastasWarn" class="empty" style="display:none;text-align:left;background:#1e1b4b;border:1px solid #4c1d95;border-radius:12px;margin-bottom:14px;padding:12px 16px"></div>
 
     <div class="layout">
       <section class="panel">
@@ -447,6 +450,34 @@ function gerarPainel() {
         $('sTime').textContent = new Date().toLocaleTimeString('pt-BR');
         $('headerMeta').textContent =
           'Servidor ok · ' + (resumo.timestamp ? fmtTime(resumo.timestamp) : '');
+
+        // Status monitor de pastas
+        let pastas = resumo.pastas;
+        if (!pastas) {
+          try {
+            const ps = await api('/api/pastas/status');
+            pastas = ps.pastas;
+          } catch (_) {}
+        }
+        if (pastas) {
+          const parts = [];
+          if (!pastas.plataformaOk) parts.push('não-Windows');
+          else if (!pastas.rodando) parts.push('parado');
+          else parts.push('ativo');
+          if (pastas.eventosCapturadosTotal != null) parts.push(pastas.eventosCapturadosTotal + ' evt');
+          if (pastas.ultimoErro) parts.push('ERRO');
+          $('sPastas').textContent = parts.join(' · ');
+          $('sPastas').className = 'value' + (pastas.ultimoErro ? ' warn' : pastas.rodando ? ' ok' : '');
+          const warn = $('pastasWarn');
+          if (pastas.ultimoErro || (pastas.avisos && pastas.avisos.length)) {
+            warn.style.display = 'block';
+            warn.innerHTML = '<strong>Monitor de pastas:</strong> ' +
+              esc(pastas.ultimoErro || (pastas.avisos || []).join(' | ')) +
+              '<br><span class="muted">Dica: rode o servidor como Administrador e habilite auditoria nas pastas compartilhadas. Filtro do painel: fonte SERVIDOR_PASTAS.</span>';
+          } else {
+            warn.style.display = 'none';
+          }
+        }
         renderMaquinas();
         renderUsuarios();
         await carregarEventos();

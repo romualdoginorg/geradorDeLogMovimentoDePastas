@@ -9,10 +9,10 @@
     "arquitetura": "x64",
     "versaoSO": "10.0.26200",
     "tipoSO": "Windows_NT",
-    "uptimeSegundos": 16374,
+    "uptimeSegundos": 20351,
     "cpus": 4,
     "memoriaTotalMB": 3951,
-    "memoriaLivreMB": 374,
+    "memoriaLivreMB": 606,
     "ipPrincipal": "192.168.0.2",
     "macPrincipal": "50:a1:32:07:b5:a3",
     "ips": [
@@ -25,13 +25,13 @@
     "fabricante": "Positivo Bahia - VAIO",
     "modelo": "VJFE51F11X-B0311H",
     "serialBios": "89240698M",
-    "pid": 5916,
+    "pid": 9000,
     "nodeVersion": "v24.19.0",
-    "coletadoEm": "2026-08-09T22:48:28.050Z",
+    "coletadoEm": "2026-08-09T23:54:44.979Z",
     "ultimoMotivoEnvio": "periodico",
     "versaoApp": "1.0.0",
-    "quantidadeUltimoLote": 2,
-    "ultimoContato": "2026-08-09T22:48:28.115Z",
+    "quantidadeUltimoLote": 4,
+    "ultimoContato": "2026-08-09T23:54:45.034Z",
     "primeiroRegistro": "2026-08-09T22:35:31.243Z"
   }
 }

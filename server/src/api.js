@@ -12,7 +12,7 @@ const { gerarPainel } = require('./painel');
  * GET  /api/usuarios         → lista usuários
  * GET  /api/eventos?data=&nomeMaquina=&usuario=&fonte=&limite=
  */
-function iniciarApi({ config, logger, store }) {
+function iniciarApi({ config, logger, store, getPastasStatus }) {
   const host = config.api?.host || '0.0.0.0';
   const port = config.api?.port || 3847;
   const tokenEsperado = config.api?.token || '';
@@ -90,13 +90,20 @@ function iniciarApi({ config, logger, store }) {
 
       // Health público
       if (path === '/api/health' || path === '/health') {
+        const pastas = typeof getPastasStatus === 'function' ? getPastasStatus() : null;
         return json(res, 200, {
           ok: true,
           servico: 'monitor-servidor',
           versao: '1.0.0',
           ...store.resumo(),
+          pastas,
           timestamp: new Date().toISOString()
         });
+      }
+
+      if (path === '/api/pastas/status' && req.method === 'GET') {
+        const pastas = typeof getPastasStatus === 'function' ? getPastasStatus() : { habilitado: false };
+        return json(res, 200, { ok: true, pastas });
       }
 
       if (!autenticado(req)) {
@@ -166,7 +173,7 @@ function iniciarApi({ config, logger, store }) {
           'GET /api/resumo',
           'GET /api/maquinas',
           'GET /api/usuarios',
-          'GET /api/eventos'
+          'GET /api/eventos', 'GET /api/pastas/status'
         ]
       });
     } catch (e) {

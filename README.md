@@ -119,3 +119,102 @@ npm run build:pkg
 - O envio só ocorre se `envio.habilitado = true` e a URL estiver configurada.
 - Eventos ficam no buffer local até serem enviados com sucesso.
 - Mantenha `tray_windows_release.exe` na mesma pasta do executável.
+
+
+## Serviço Windows (Opção B – sem tray)
+
+Roda em segundo plano sem ícone na bandeja (modo headless).
+
+```bash
+# 1. Instalar dependência (já no package.json)
+npm install
+
+# 2. PowerShell ou CMD **como Administrador**
+npm run service:install
+```
+
+Comandos:
+
+```bash
+net start MonitorProdutividade
+net stop MonitorProdutividade
+sc query MonitorProdutividade
+
+# Remover serviço
+npm run service:uninstall
+```
+
+Configuração enquanto o serviço roda:
+
+- http://127.0.0.1:17340/config
+
+Logs: pasta `logs/`.
+
+Para testar headless sem instalar serviço:
+
+```bash
+npm run start:service
+```
+
+
+## Conta de usuário no serviço
+
+Por padrão o serviço usa **Local System**. Para rodar como usuário de domínio/rede:
+
+### Na instalação
+
+```bat
+set SERVICE_USER=EMPRESA\joao.silva
+set SERVICE_PASSWORD=SuaSenha
+npm run service:install
+```
+
+Ou:
+
+```bat
+node scripts/install-service.js --user=EMPRESA\joao.silva --password=SuaSenha
+```
+
+Usuário local da máquina:
+
+```bat
+set SERVICE_USER=.\usuario_local
+set SERVICE_PASSWORD=SuaSenha
+npm run service:install
+```
+
+### Só alterar a conta (serviço já instalado)
+
+```bat
+set SERVICE_USER=EMPRESA\joao.silva
+set SERVICE_PASSWORD=SuaSenha
+npm run service:account
+```
+
+Voltar para Local System:
+
+```bat
+node scripts/set-service-account.js --system
+```
+
+### Manual (services.msc)
+
+1. `Win+R` → `services.msc`
+2. **MonitorProdutividade** → Propriedades → aba **Logon**
+3. Selecione **Esta conta** → usuário e senha
+4. Se o Windows avisar, permita **Logon as a service**
+5. Reinicie o serviço
+
+### Direitos necessários
+
+A conta precisa de:
+
+- **Log on as a service** (Logon como serviço)
+- Leitura/escrita na pasta do app (`logs/`, `config/`)
+- Se for monitorar sessão do usuário, preferível a **mesma conta que faz logon interativo**
+
+Ver conta atual:
+
+```bat
+sc qc MonitorProdutividade
+```

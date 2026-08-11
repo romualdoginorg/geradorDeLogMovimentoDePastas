@@ -6,21 +6,27 @@
   "bin": "src/main.js",
   "scripts": {
     "start": "node src/main.js",
+    "start:service": "set MONITOR_HEADLESS=1&& node src/main.js --service",
     "dev": "node --watch src/main.js",
     "build": "node scripts/build.js",
     "build:pkg": "pkg . --targets node18-win-x64 --output dist/monitor-produtividade.exe --compress GZip",
-    "postinstall": "node -e \"console.log('✅ Dependências instaladas. Rode: npm start')"
+    "build:debug": "pkg . --targets node18-win-x64 --output dist/monitor-produtividade.exe --debug",
+    "service:install": "node scripts/install-service.js",
+    "service:uninstall": "node scripts/uninstall-service.js",
+    "postinstall": "node -e \"console.log('OK. Desktop: npm start | Servico: npm run service:install (Admin)')\""
   },
   "keywords": [
     "tray",
     "monitor",
     "produtividade",
     "windows",
-    "system-tray"
+    "system-tray",
+    "service"
   ],
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "node-windows": "^1.0.0-beta.8",
     "systray2": "^2.1.4",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0"
@@ -33,9 +39,9 @@
       "src/**/*.js"
     ],
     "assets": [
-      "node_modules/systray2/traybin/**/*",
       "assets/**/*",
-      "config/**/*"
+      "config/**/*",
+      "node_modules/systray2/traybin/**/*"
     ],
     "targets": [
       "node18-win-x64"

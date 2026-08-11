@@ -1,0 +1,35 @@
+<service>
+	<id>monitorprodutividade.exe</id>
+	<name>MonitorProdutividade</name>
+	<description>Monitor de produtividade em segundo plano (coleta de atividade e envio ao servidor). Modo headless.</description>
+	<executable>C:\Program Files\nodejs\node.exe</executable>
+	<argument>--harmony</argument>
+	<argument>C:\dev\geradorDeLogMovimentoDePastas\node_modules\node-windows\lib\wrapper.js</argument>
+	<argument>--file</argument>
+	<argument>C:\dev\geradorDeLogMovimentoDePastas\src\main.js</argument>
+	<argument>--scriptoptions=</argument>
+	<argument>--log</argument>
+	<argument>MonitorProdutividade wrapper</argument>
+	<argument>--grow</argument>
+	<argument>0.25</argument>
+	<argument>--wait</argument>
+	<argument>1</argument>
+	<argument>--maxrestarts</argument>
+	<argument>10</argument>
+	<argument>--abortonerror</argument>
+	<argument>n</argument>
+	<argument>--stopparentfirst</argument>
+	<argument>undefined</argument>
+	<argument>--maxretries</argument>
+	<argument>3</argument>
+	<logmode>rotate</logmode>
+	<stoptimeout>30sec</stoptimeout>
+	<env name="MONITOR_HEADLESS" value="1"/>
+	<env name="NODE_ENV" value="production"/>
+	<serviceaccount>
+		<domain>ROM</domain>
+		<user>LocalSystem</user>
+		<password></password>
+	</serviceaccount>
+	<workingdirectory>C:\dev\geradorDeLogMovimentoDePastas</workingdirectory>
+</service>
